@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Embed</title>
+    <script src="https://acrobatservices.adobe.com/view-sdk/viewer.js"></script>
+</head>
+<body>
+    <div id="adobe-dc-view"></div>
+    <script type="text/javascript">
+        // Function to get URL parameters
+        function getQueryParam(param) {
+            let urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        document.addEventListener("adobe_dc_view_sdk.ready", function(){ 
+            var adobeDCView = new AdobeDC.View({clientId: "4daca7356e3b4392ad86b97ead5cfe49", divId: "adobe-dc-view"});
+            var pdfUrl = getQueryParam('pdfUrl') || "https://acrobatservices.adobe.com/view-sdk-demo/PDFs/Bodea Brochure.pdf"; // Default URL if parameter is not provided
+            adobeDCView.previewFile({
+                content: { location: { url: pdfUrl } },
+                metaData: { fileName: "Document.pdf" }
+            }, { defaultViewMode: "FIT_WIDTH" });
+        });
+    </script>
+</body>
+</html>

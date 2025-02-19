@@ -16,7 +16,7 @@
         }
 
         document.addEventListener("adobe_dc_view_sdk.ready", function(){ 
-            var adobeDCView = new AdobeDC.View({clientId: "4daca7356e3b4392ad86b97ead5cfe49", divId: "adobe-dc-view"});
+            var adobeDCView = new AdobeDC.View({clientId: "51281cdb2f9b4b7791e5da126c8e8a8d", divId: "adobe-dc-view"});
             var pdfUrl = getQueryParam('pdfUrl') || "https://acrobatservices.adobe.com/view-sdk-demo/PDFs/Bodea Brochure.pdf"; // Default URL if parameter is not provided
             adobeDCView.previewFile({
                 content: { location: { url: pdfUrl } },

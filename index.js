@@ -15,6 +15,11 @@ const viewerConfig = {
     defaultViewMode: "",
 };
 
+// Function to get URL parameters
+function getQueryParam(param) {
+    let urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(param);
+}
 /* Wait for Adobe Acrobat Services PDF Embed API to be ready */
 document.addEventListener("adobe_dc_view_sdk.ready", function () {
     /* Initialize the AdobeDC View object */
@@ -31,7 +36,7 @@ document.addEventListener("adobe_dc_view_sdk.ready", function () {
         content: {
             /* Location of file where it is hosted */
             location: {
-                url: "https://acrobatservices.adobe.com/view-sdk-demo/PDFs/Bodea Brochure.pdf",
+                url: "",
                 /*
                 If the file URL requires some additional headers, then it can be passed as follows:-
                 headers: [

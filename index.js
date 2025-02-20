@@ -12,7 +12,7 @@ written permission of Adobe.
 /* Control the default view mode */
 const viewerConfig = {
     /* Allowed possible values are "FIT_PAGE", "FIT_WIDTH", "TWO_COLUMN", "TWO_COLUMN_FIT_PAGE" or "". */
-    defaultViewMode: "",
+    defaultViewMode: "FIT_WIDTH",
 };
 
 // Function to get URL parameters
@@ -30,7 +30,7 @@ document.addEventListener("adobe_dc_view_sdk.ready", function () {
         divId: "adobe-dc-view",
     });
 
-    var pdfUrl = getQueryParam('pdfUrl') || "https://acrobatservices.adobe.com/view-sdk-demo/PDFs/Bodea Brochure.pdf"; // Default URL if parameter is not provided
+    var pdfUrl = getQueryParam('pdfUrl'); // Default URL if parameter is not provided
             
 
     /* Invoke the file preview API on Adobe DC View object */

@@ -30,13 +30,16 @@ document.addEventListener("adobe_dc_view_sdk.ready", function () {
         divId: "adobe-dc-view",
     });
 
+    var pdfUrl = getQueryParam('pdfUrl') || "https://acrobatservices.adobe.com/view-sdk-demo/PDFs/Bodea Brochure.pdf"; // Default URL if parameter is not provided
+            
+
     /* Invoke the file preview API on Adobe DC View object */
     adobeDCView.previewFile({
         /* Pass information on how to access the file */
         content: {
             /* Location of file where it is hosted */
             location: {
-                url: "",
+                url: pdfUrl,
                 /*
                 If the file URL requires some additional headers, then it can be passed as follows:-
                 headers: [

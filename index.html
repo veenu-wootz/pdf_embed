@@ -13,51 +13,60 @@
 </body>
 </html> -->
 
-
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>PDF.js Progressive Rendering Example</title>
-  <!-- Include PDF.js from a CDN -->
+  <title>PDF.js Progressive Rendering Full PDF</title>
+  <!-- Load PDF.js from CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.7.107/pdf.min.js"></script>
   <style>
-    #pdf-canvas {
+    /* A scrollable container for all pages */
+    #pdf-container {
+      height: 90vh;
+      overflow-y: scroll;
       border: 1px solid #ccc;
+      margin: 20px;
+    }
+    /* Style for each canvas page */
+    .pdf-page {
+      margin: 10px auto;
+      display: block;
       max-width: 100%;
     }
   </style>
 </head>
 <body>
-  <!-- Canvas to render PDF page -->
-  <canvas id="pdf-canvas"></canvas>
-  <br>
-  <!-- Button to trigger high-quality re-render -->
-  <button id="upgradeBtn">Load High Quality</button>
-  
+  <div id="pdf-container"></div>
   <script>
-    // PDF URL – replace with your own PDF URL if needed
+    // PDF URL – replace with your PDF URL if needed
     var url = "https://acrobatservices.adobe.com/view-sdk-demo/PDFs/Bodea%20Brochure.pdf";
 
-    // Variables to hold the PDF document, current page, and current scale
-    var pdfDoc = null;
-    var currentPage = 1;
-    var currentScale = 1.0;  // Low quality: lower scale
-    var canvas = document.getElementById("pdf-canvas");
-    var ctx = canvas.getContext("2d");
+    // Define scales: low for initial load, high for quality upgrade
+    var lowScale = 1.0;    // Lower resolution for fast load
+    var highScale = 2.0;   // Higher resolution when in view
 
-    // Function to render a given page at a specified scale
-    function renderPage(num, scale) {
-      pdfDoc.getPage(num).then(function(page) {
+    var pdfDoc = null;
+    var numPages = 0;
+    // Keep track of current rendering quality for each page
+    var pageRenderedQuality = {};
+
+    // The container for PDF pages
+    var container = document.getElementById("pdf-container");
+
+    // Render a given page at the specified scale into the provided canvas element
+    function renderPage(pageNum, scale, canvas) {
+      pdfDoc.getPage(pageNum).then(function(page) {
         var viewport = page.getViewport({ scale: scale });
-        canvas.height = viewport.height;
         canvas.width = viewport.width;
+        canvas.height = viewport.height;
         var renderContext = {
-          canvasContext: ctx,
+          canvasContext: canvas.getContext("2d"),
           viewport: viewport
         };
         page.render(renderContext).promise.then(function() {
-          console.log("Page rendered at scale", scale);
+          console.log("Page " + pageNum + " rendered at scale " + scale);
+          pageRenderedQuality[pageNum] = scale;
         });
       });
     }
@@ -65,22 +74,53 @@
     // Load the PDF document
     pdfjsLib.getDocument(url).promise.then(function(pdf) {
       pdfDoc = pdf;
-      console.log("PDF loaded");
-      // Initially render at low scale (low quality)
-      renderPage(currentPage, currentScale);
+      numPages = pdf.numPages;
+      console.log("PDF loaded with " + numPages + " pages.");
+      
+      // For each page, create a canvas and render it at low quality
+      for (var pageNum = 1; pageNum <= numPages; pageNum++) {
+        var canvas = document.createElement("canvas");
+        canvas.id = "page-canvas-" + pageNum;
+        canvas.className = "pdf-page";
+        // Mark as rendered at low scale initially
+        pageRenderedQuality[pageNum] = lowScale;
+        container.appendChild(canvas);
+        renderPage(pageNum, lowScale, canvas);
+      }
+      
+      // Set up an Intersection Observer to detect when a canvas is in view
+      var observerOptions = {
+        root: container,
+        threshold: 0.5  // When 50% of the canvas is visible
+      };
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            // Determine which page this canvas corresponds to
+            var canvasId = entry.target.id;
+            var pageNum = parseInt(canvasId.replace("page-canvas-", ""));
+            // If this page is still rendered at low quality, upgrade it
+            if (pageRenderedQuality[pageNum] < highScale) {
+              console.log("Upgrading page " + pageNum + " to high quality.");
+              renderPage(pageNum, highScale, entry.target);
+            }
+          }
+        });
+      }, observerOptions);
+
+      // Observe each page canvas
+      for (var pageNum = 1; pageNum <= numPages; pageNum++) {
+        var canvas = document.getElementById("page-canvas-" + pageNum);
+        observer.observe(canvas);
+      }
     }).catch(function(error){
       console.error("Error loading PDF:", error);
-    });
-
-    // On button click, upgrade the quality by re-rendering at a higher scale
-    document.getElementById("upgradeBtn").addEventListener("click", function(){
-      // Change to a higher scale (e.g., 2.0 for higher resolution)
-      currentScale = 2.0;
-      renderPage(currentPage, currentScale);
     });
   </script>
 </body>
 </html>
+
 
 
 

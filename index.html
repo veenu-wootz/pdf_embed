@@ -12,6 +12,66 @@
     <script type="text/javascript" src="https://acrobatservices.adobe.com/view-sdk/viewer.js"></script>
 </body>
 </html> -->
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>PDF.js Example</title>
+  <!-- Include PDF.js from a CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.7.107/pdf.min.js"></script>
+  <style>
+    #pdf-canvas {
+      border: 1px solid #ccc;
+      max-width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="pdf-canvas"></canvas>
+  <script>
+    // Specify your PDF URL
+    var url = "https://acrobatservices.adobe.com/view-sdk-demo/PDFs/Bodea%20Brochure.pdf";
+    
+    // Asynchronously fetch the PDF
+    var loadingTask = pdfjsLib.getDocument(url);
+    loadingTask.promise.then(function(pdf) {
+      console.log("PDF loaded");
+      
+      // Fetch the first page
+      pdf.getPage(1).then(function(page) {
+        console.log("Page loaded");
+        var scale = 1.5;
+        var viewport = page.getViewport({ scale: scale });
+        
+        // Prepare canvas using PDF page dimensions
+        var canvas = document.getElementById("pdf-canvas");
+        var context = canvas.getContext("2d");
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        // Render PDF page into canvas context
+        var renderContext = {
+          canvasContext: context,
+          viewport: viewport
+        };
+        var renderTask = page.render(renderContext);
+        renderTask.promise.then(function() {
+          console.log("Page rendered");
+        });
+      });
+    }, function (reason) {
+      // PDF loading error
+      console.error(reason);
+    });
+  </script>
+</body>
+</html>
+
+
+
+
+<!-- 
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -45,8 +105,8 @@
 <body>
   <div id="adobe-dc-view"></div>
   <!-- Load the Adobe viewer SDK after our listener is in place -->
-  <script src="https://acrobatservices.adobe.com/view-sdk/viewer.js"></script>
+<!--   <script src="https://acrobatservices.adobe.com/view-sdk/viewer.js"></script>
 </body>
-</html>
+</html> --> -->
 
 <!-- defaultViewMode: "FIT_WIDTH" -->

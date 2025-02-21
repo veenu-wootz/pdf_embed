@@ -18,32 +18,40 @@
 <head>
   <meta charset="utf-8">
   <title>PDF.js Progressive Rendering with Adaptive Zoom & Selectable Text</title>
-  <!-- Include PDF.js from a CDN -->
+  <!-- Load PDF.js from CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.7.107/pdf.min.js"></script>
   <style>
+    /* Container for all pages */
     #pdf-container {
       height: 90vh;
       overflow-y: scroll;
       border: 1px solid #ccc;
       margin: 20px;
-      touch-action: none; /* Prevent default pinch zoom on touch devices */
+      touch-action: none; /* Prevent default pinch zoom */
       position: relative;
     }
+    /* Each page container holds both the canvas and the text layer */
     .pageContainer {
       position: relative;
       margin: 10px auto;
       max-width: 100%;
     }
+    /* Canvas styles */
     .pdf-canvas {
       display: block;
     }
+    /* Text layer styles: ensure it overlays the canvas and allows text selection */
     .textLayer {
       position: absolute;
       top: 0;
       left: 0;
-      /* Ensure text layer covers the entire canvas */
-      pointer-events: none; /* Allow mouse events to pass to canvas if needed; change to 'auto' for selection */
-      color: transparent; /* PDF.js default text layer styling will override for selection */
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: auto;
+      user-select: text;
+      /* Optionally, set a visible text color if needed */
+      color: black;
     }
   </style>
 </head>
@@ -51,7 +59,7 @@
   <div id="pdf-container"></div>
 
   <script>
-    // PDF URL – replace with your PDF URL if needed
+    // PDF URL – replace with your own PDF URL if needed
     var url = "https://acrobatservices.adobe.com/view-sdk-demo/PDFs/Bodea%20Brochure.pdf";
     
     // Define initial low-quality scale and current scale (for zooming)
@@ -67,21 +75,19 @@
     
     var container = document.getElementById("pdf-container");
 
-    // Function to render a given page with both canvas and text layer
+    // Function to render a page with both canvas and text layer
     function renderPage(pageNum, scale, pageContainer) {
       pdfDoc.getPage(pageNum).then(function(page) {
         var viewport = page.getViewport({ scale: scale });
-        // Set the container dimensions to match the viewport
+        // Set container dimensions to match the page
         pageContainer.style.width = viewport.width + "px";
         pageContainer.style.height = viewport.height + "px";
         
-        // Set up the canvas
+        // Canvas rendering
         var canvas = pageContainer.querySelector("canvas");
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         var ctx = canvas.getContext("2d");
-        
-        // Render the page into the canvas
         page.render({
           canvasContext: ctx,
           viewport: viewport
@@ -93,14 +99,12 @@
         // Render the text layer for selectable text
         page.getTextContent().then(function(textContent) {
           var textLayerDiv = pageContainer.querySelector(".textLayer");
-          // Clear previous text
-          textLayerDiv.innerHTML = "";
-          // Ensure text layer covers canvas exactly
+          textLayerDiv.innerHTML = ""; // Clear previous content
+          // Ensure text layer matches the canvas
           textLayerDiv.style.width = canvas.width + "px";
           textLayerDiv.style.height = canvas.height + "px";
           textLayerDiv.style.top = "0";
           textLayerDiv.style.left = "0";
-          // Render text layer using PDF.js helper
           pdfjsLib.renderTextLayer({
             textContent: textContent,
             container: textLayerDiv,
@@ -108,14 +112,12 @@
             textDivs: []
           }).promise.then(function() {
             console.log("Text layer rendered for page " + pageNum);
-            // Optional: remove transparent color styling so text can be selected.
-            // textLayerDiv.style.color = "black";
           });
         });
       });
     }
-    
-    // Load the PDF document and create page containers
+
+    // Load the PDF and create containers for each page
     pdfjsLib.getDocument(url).promise.then(function(pdf) {
       pdfDoc = pdf;
       numPages = pdf.numPages;
@@ -139,13 +141,12 @@
         renderPage(pageNum, lowScale, pageContainer);
       }
       
-      // Set up Intersection Observer to track visible pages
       setupObserver();
     }).catch(function(error) {
       console.error("Error loading PDF:", error);
     });
-    
-    // Intersection Observer to determine which pages are visible
+
+    // Intersection Observer: track which pages are visible (≥50% in view)
     function setupObserver() {
       var observerOptions = {
         root: container,
@@ -170,8 +171,8 @@
       }
     }
     
-    // Adaptive zoom: Listen for mouse wheel (Ctrl+wheel) and pinch gestures for zooming
-    // Desktop: Mouse wheel zoom (Ctrl+wheel)
+    // Adaptive Zoom: Listen for mouse wheel (Ctrl+wheel) and pinch events
+    // Desktop: Mouse wheel zoom
     container.addEventListener("wheel", function(event) {
       if (event.ctrlKey) {
         event.preventDefault();
@@ -232,7 +233,6 @@
 
 
 
-
 <!-- 
 <!DOCTYPE html>
 <html lang="en">
@@ -269,6 +269,6 @@
   <!-- Load the Adobe viewer SDK after our listener is in place -->
 <!--   <script src="https://acrobatservices.adobe.com/view-sdk/viewer.js"></script>
 </body>
-</html> --> -->
+</html> -->
 
 <!-- defaultViewMode: "FIT_WIDTH" -->

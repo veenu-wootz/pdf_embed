@@ -35,7 +35,7 @@
       adobeDCView.previewFile({
         content: { location: { url: pdfUrl } },
         metaData: { fileName: "Document.pdf" }
-      }, { defaultViewMode: "FIT_WIDTH" });
+      }, { embedMode: "LIGHT_BOX" });
     }
     
     // Register the event listener before viewer.js is loaded
@@ -48,3 +48,5 @@
   <script src="https://acrobatservices.adobe.com/view-sdk/viewer.js"></script>
 </body>
 </html>
+
+<!-- defaultViewMode: "FIT_WIDTH" -->

@@ -17,37 +17,33 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>PDF.js Progressive Rendering with Adaptive Zoom & Text Copy</title>
-  <!-- Load PDF.js from a CDN -->
+  <title>PDF.js Progressive Rendering with Adaptive Zoom & Selectable Text</title>
+  <!-- Include PDF.js from a CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.7.107/pdf.min.js"></script>
   <style>
-    /* Container for all pages */
     #pdf-container {
       height: 90vh;
       overflow-y: scroll;
       border: 1px solid #ccc;
       margin: 20px;
+      touch-action: none; /* Prevent default pinch zoom on touch devices */
+      position: relative;
     }
-    /* Each page container holds both the canvas and text layer */
     .pageContainer {
       position: relative;
       margin: 10px auto;
       max-width: 100%;
     }
-    /* Canvas styling */
     .pdf-canvas {
       display: block;
     }
-    /* Text layer styled to overlay canvas */
     .textLayer {
       position: absolute;
       top: 0;
       left: 0;
-      right: 0;
-      bottom: 0;
-      pointer-events: auto;
-      /* Optional: style text layer so that text is visible */
-      color: transparent; /* PDF.js will add its own styles for text selection */
+      /* Ensure text layer covers the entire canvas */
+      pointer-events: none; /* Allow mouse events to pass to canvas if needed; change to 'auto' for selection */
+      color: transparent; /* PDF.js default text layer styling will override for selection */
     }
   </style>
 </head>
@@ -64,7 +60,7 @@
     
     var pdfDoc = null;
     var numPages = 0;
-    // To track the scale at which each page is currently rendered
+    // Track the scale at which each page is rendered
     var pageRenderedScale = {};
     // Set to store page numbers currently visible in the container
     var visiblePages = new Set();
@@ -75,31 +71,36 @@
     function renderPage(pageNum, scale, pageContainer) {
       pdfDoc.getPage(pageNum).then(function(page) {
         var viewport = page.getViewport({ scale: scale });
-        // Set container dimensions to match the viewport
+        // Set the container dimensions to match the viewport
         pageContainer.style.width = viewport.width + "px";
         pageContainer.style.height = viewport.height + "px";
         
-        // Get canvas inside the container and set its dimensions
+        // Set up the canvas
         var canvas = pageContainer.querySelector("canvas");
         canvas.width = viewport.width;
         canvas.height = viewport.height;
+        var ctx = canvas.getContext("2d");
         
-        var renderContext = {
-          canvasContext: canvas.getContext("2d"),
+        // Render the page into the canvas
+        page.render({
+          canvasContext: ctx,
           viewport: viewport
-        };
-        
-        // Render page onto canvas
-        page.render(renderContext).promise.then(function() {
+        }).promise.then(function() {
           console.log("Page " + pageNum + " rendered at scale " + scale);
           pageRenderedScale[pageNum] = scale;
-          // Now render the text layer
-          return page.getTextContent();
-        }).then(function(textContent) {
+        });
+        
+        // Render the text layer for selectable text
+        page.getTextContent().then(function(textContent) {
           var textLayerDiv = pageContainer.querySelector(".textLayer");
-          // Clear any previous text layer content
+          // Clear previous text
           textLayerDiv.innerHTML = "";
-          // Render text layer
+          // Ensure text layer covers canvas exactly
+          textLayerDiv.style.width = canvas.width + "px";
+          textLayerDiv.style.height = canvas.height + "px";
+          textLayerDiv.style.top = "0";
+          textLayerDiv.style.left = "0";
+          // Render text layer using PDF.js helper
           pdfjsLib.renderTextLayer({
             textContent: textContent,
             container: textLayerDiv,
@@ -107,18 +108,19 @@
             textDivs: []
           }).promise.then(function() {
             console.log("Text layer rendered for page " + pageNum);
+            // Optional: remove transparent color styling so text can be selected.
+            // textLayerDiv.style.color = "black";
           });
         });
       });
     }
-
-    // Load the PDF document and create containers for each page
+    
+    // Load the PDF document and create page containers
     pdfjsLib.getDocument(url).promise.then(function(pdf) {
       pdfDoc = pdf;
       numPages = pdf.numPages;
       console.log("PDF loaded with " + numPages + " pages.");
       
-      // Create a container for each page with a canvas and text layer
       for (var pageNum = 1; pageNum <= numPages; pageNum++) {
         var pageContainer = document.createElement("div");
         pageContainer.id = "page-container-" + pageNum;
@@ -137,16 +139,17 @@
         renderPage(pageNum, lowScale, pageContainer);
       }
       
+      // Set up Intersection Observer to track visible pages
       setupObserver();
     }).catch(function(error) {
       console.error("Error loading PDF:", error);
     });
     
-    // Set up an Intersection Observer to track visible pages
+    // Intersection Observer to determine which pages are visible
     function setupObserver() {
       var observerOptions = {
         root: container,
-        threshold: 0.5  // Consider a page visible if 50% is in view
+        threshold: 0.5
       };
       
       var observer = new IntersectionObserver(function(entries) {
@@ -167,9 +170,7 @@
       }
     }
     
-    // Adaptive zoom: Listen for both mouse wheel and touch pinch events for zooming
-    // (This implementation listens for Ctrl+wheel for desktops and pinch gestures for touch)
-    
+    // Adaptive zoom: Listen for mouse wheel (Ctrl+wheel) and pinch gestures for zooming
     // Desktop: Mouse wheel zoom (Ctrl+wheel)
     container.addEventListener("wheel", function(event) {
       if (event.ctrlKey) {

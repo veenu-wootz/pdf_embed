@@ -17,44 +17,53 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>PDF.js Progressive Rendering Full PDF</title>
-  <!-- Load PDF.js from CDN -->
+  <title>PDF.js Progressive Rendering with Zoom (Visible Pages Only)</title>
+  <!-- Load PDF.js from a CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.7.107/pdf.min.js"></script>
   <style>
-    /* A scrollable container for all pages */
     #pdf-container {
       height: 90vh;
       overflow-y: scroll;
       border: 1px solid #ccc;
       margin: 20px;
     }
-    /* Style for each canvas page */
     .pdf-page {
       margin: 10px auto;
       display: block;
       max-width: 100%;
     }
+    #zoom-controls {
+      text-align: center;
+      margin: 10px;
+    }
   </style>
 </head>
 <body>
+  <div id="zoom-controls">
+    <label for="zoomSlider">Zoom:</label>
+    <input type="range" id="zoomSlider" min="1" max="3" step="0.1" value="1">
+    <span id="zoomValue">1.0</span>
+  </div>
   <div id="pdf-container"></div>
+
   <script>
-    // PDF URL – replace with your PDF URL if needed
+    // PDF URL – replace with your own PDF URL if needed
     var url = "https://acrobatservices.adobe.com/view-sdk-demo/PDFs/Bodea%20Brochure.pdf";
-
-    // Define scales: low for initial load, high for quality upgrade
-    var lowScale = 1.0;    // Lower resolution for fast load
-    var highScale = 2.0;   // Higher resolution when in view
-
+    
+    // Define the initial low-quality scale and the current zoom scale
+    var lowScale = 1.0;
+    var currentScale = lowScale;
+    
     var pdfDoc = null;
     var numPages = 0;
-    // Keep track of current rendering quality for each page
-    var pageRenderedQuality = {};
-
-    // The container for PDF pages
+    // Keep track of the current scale at which each page is rendered
+    var pageRenderedScale = {};
+    // Set to store page numbers that are at least 50% visible
+    var visiblePages = new Set();
+    
     var container = document.getElementById("pdf-container");
-
-    // Render a given page at the specified scale into the provided canvas element
+    
+    // Function to render a given page at a specified scale into its canvas
     function renderPage(pageNum, scale, canvas) {
       pdfDoc.getPage(pageNum).then(function(page) {
         var viewport = page.getViewport({ scale: scale });
@@ -66,60 +75,75 @@
         };
         page.render(renderContext).promise.then(function() {
           console.log("Page " + pageNum + " rendered at scale " + scale);
-          pageRenderedQuality[pageNum] = scale;
+          pageRenderedScale[pageNum] = scale;
         });
       });
     }
-
-    // Load the PDF document
+    
+    // Load the PDF document and render each page at low quality initially
     pdfjsLib.getDocument(url).promise.then(function(pdf) {
       pdfDoc = pdf;
       numPages = pdf.numPages;
       console.log("PDF loaded with " + numPages + " pages.");
       
-      // For each page, create a canvas and render it at low quality
       for (var pageNum = 1; pageNum <= numPages; pageNum++) {
         var canvas = document.createElement("canvas");
         canvas.id = "page-canvas-" + pageNum;
         canvas.className = "pdf-page";
-        // Mark as rendered at low scale initially
-        pageRenderedQuality[pageNum] = lowScale;
+        pageRenderedScale[pageNum] = lowScale;
         container.appendChild(canvas);
         renderPage(pageNum, lowScale, canvas);
       }
       
-      // Set up an Intersection Observer to detect when a canvas is in view
+      // Set up an Intersection Observer to track visible pages
+      setupObserver();
+    }).catch(function(error) {
+      console.error("Error loading PDF:", error);
+    });
+    
+    // Set up IntersectionObserver to monitor which pages are visible in the container
+    function setupObserver() {
       var observerOptions = {
         root: container,
-        threshold: 0.5  // When 50% of the canvas is visible
+        threshold: 0.5  // Consider a page visible if 50% of it is in view
       };
-
+      
       var observer = new IntersectionObserver(function(entries) {
         entries.forEach(function(entry) {
-          if (entry.isIntersecting) {
-            // Determine which page this canvas corresponds to
-            var canvasId = entry.target.id;
-            var pageNum = parseInt(canvasId.replace("page-canvas-", ""));
-            // If this page is still rendered at low quality, upgrade it
-            if (pageRenderedQuality[pageNum] < highScale) {
-              console.log("Upgrading page " + pageNum + " to high quality.");
-              renderPage(pageNum, highScale, entry.target);
-            }
+          var canvas = entry.target;
+          var pageNum = parseInt(canvas.id.replace("page-canvas-", ""));
+          if (entry.intersectionRatio >= 0.5) {
+            visiblePages.add(pageNum);
+          } else {
+            visiblePages.delete(pageNum);
           }
         });
       }, observerOptions);
-
+      
       // Observe each page canvas
       for (var pageNum = 1; pageNum <= numPages; pageNum++) {
         var canvas = document.getElementById("page-canvas-" + pageNum);
         observer.observe(canvas);
       }
-    }).catch(function(error){
-      console.error("Error loading PDF:", error);
+    }
+    
+    // Add a zoom slider that re-renders only the visible pages at the new quality level
+    var zoomSlider = document.getElementById("zoomSlider");
+    var zoomValueDisplay = document.getElementById("zoomValue");
+    zoomSlider.addEventListener("input", function() {
+      var newScale = parseFloat(zoomSlider.value);
+      zoomValueDisplay.textContent = newScale.toFixed(1);
+      currentScale = newScale;
+      // Re-render only the visible pages
+      visiblePages.forEach(function(pageNum) {
+        var canvas = document.getElementById("page-canvas-" + pageNum);
+        renderPage(pageNum, currentScale, canvas);
+      });
     });
   </script>
 </body>
 </html>
+
 
 
 

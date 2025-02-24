@@ -13,45 +13,9 @@
 </body>
 </html> -->
 
+
+
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Direct PDF Viewer</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-    }
-    iframe {
-      border: none;
-      width: 100%;
-      height: 100%;
-    }
-  </style>
-</head>
-<body>
-  <script>
-    // Function to get URL parameters
-    function getQueryParam(param) {
-      let urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get(param);
-    }
-    
-    // Get the pdfUrl parameter; use default if not provided
-    var pdfUrl = getQueryParam("pdfUrl") || "https://acrobatservices.adobe.com/view-sdk-demo/PDFs/Bodea%20Brochure.pdf";
-    
-    // Embed the PDF directly using an iframe
-    document.write('<iframe src="' + pdfUrl + '"></iframe>');
-  </script>
-</body>
-</html>
-
-
-
-
-<!-- <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -84,7 +48,7 @@
   </script>
 </body>
 </html>
- -->
+
 
 
 

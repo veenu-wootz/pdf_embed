@@ -17,7 +17,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Full PDF.js Viewer Example</title>
+  <title>Full PDF.js Viewer Example with Parameter</title>
   <style>
     html, body {
       height: 100%;
@@ -31,230 +31,23 @@
   </style>
 </head>
 <body>
-    
-  <!-- 
-    The PDF.js viewer hosted by Mozilla can be used by passing your PDF URL via the "file" parameter.
-    Replace the URL below with your actual PDF URL.
-  -->
-  <iframe src="https://mozilla.github.io/pdf.js/web/viewer.html?file=https://acrobatservices.adobe.com/view-sdk-demo/PDFs/Bodea%20Brochure.pdf"></iframe>
+  <script>
+    // Function to get URL parameters
+    function getQueryParam(param) {
+      let urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
+    // Obtain the PDF URL from the query string; fallback if not provided
+    var pdfUrl = getQueryParam('pdfUrl') || "https://acrobatservices.adobe.com/view-sdk-demo/PDFs/Bodea%20Brochure.pdf";
+    // Build the full viewer URL (using PDF.js viewer hosted on Mozilla's GitHub)
+    var viewerUrl = "https://mozilla.github.io/pdf.js/web/viewer.html?file=" + encodeURIComponent(pdfUrl);
+    // Insert the iframe into the document
+    document.write('<iframe src="' + viewerUrl + '"></iframe>');
+  </script>
 </body>
 </html>
 
-<!-- code for progressive loading -->
-<!-- <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>PDF.js Progressive Rendering with Adaptive Zoom & Selectable Text</title>
-  <!-- Load PDF.js from CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.7.107/pdf.min.js"></script>
-  <style>
-    /* Container for all pages */
-    #pdf-container {
-      height: 90vh;
-      overflow-y: scroll;
-      border: 1px solid #ccc;
-      margin: 20px;
-      touch-action: none; /* Prevent default pinch zoom */
-      position: relative;
-    }
-    /* Each page container holds both the canvas and the text layer */
-    .pageContainer {
-      position: relative;
-      margin: 10px auto;
-      max-width: 100%;
-    }
-    /* Canvas styles */
-    .pdf-canvas {
-      display: block;
-    }
-    /* Text layer styles: ensure it overlays the canvas and allows text selection */
-    .textLayer {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      pointer-events: auto;
-      user-select: text;
-      /* Optionally, set a visible text color if needed */
-      color: black;
-    }
-  </style>
-</head>
-<body>
-  <div id="pdf-container"></div>
 
-  <script>
-    // PDF URL – replace with your own PDF URL if needed
-    var url = "https://acrobatservices.adobe.com/view-sdk-demo/PDFs/Bodea%20Brochure.pdf";
-    
-    // Define initial low-quality scale and current scale (for zooming)
-    var lowScale = 1.0;
-    var currentScale = lowScale;
-    
-    var pdfDoc = null;
-    var numPages = 0;
-    // Track the scale at which each page is rendered
-    var pageRenderedScale = {};
-    // Set to store page numbers currently visible in the container
-    var visiblePages = new Set();
-    
-    var container = document.getElementById("pdf-container");
-
-    // Function to render a page with both canvas and text layer
-    function renderPage(pageNum, scale, pageContainer) {
-      pdfDoc.getPage(pageNum).then(function(page) {
-        var viewport = page.getViewport({ scale: scale });
-        // Set container dimensions to match the page
-        pageContainer.style.width = viewport.width + "px";
-        pageContainer.style.height = viewport.height + "px";
-        
-        // Canvas rendering
-        var canvas = pageContainer.querySelector("canvas");
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        var ctx = canvas.getContext("2d");
-        page.render({
-          canvasContext: ctx,
-          viewport: viewport
-        }).promise.then(function() {
-          console.log("Page " + pageNum + " rendered at scale " + scale);
-          pageRenderedScale[pageNum] = scale;
-        });
-        
-        // Render the text layer for selectable text
-        page.getTextContent().then(function(textContent) {
-          var textLayerDiv = pageContainer.querySelector(".textLayer");
-          textLayerDiv.innerHTML = ""; // Clear previous content
-          // Ensure text layer matches the canvas
-          textLayerDiv.style.width = canvas.width + "px";
-          textLayerDiv.style.height = canvas.height + "px";
-          textLayerDiv.style.top = "0";
-          textLayerDiv.style.left = "0";
-          pdfjsLib.renderTextLayer({
-            textContent: textContent,
-            container: textLayerDiv,
-            viewport: viewport,
-            textDivs: []
-          }).promise.then(function() {
-            console.log("Text layer rendered for page " + pageNum);
-          });
-        });
-      });
-    }
-
-    // Load the PDF and create containers for each page
-    pdfjsLib.getDocument(url).promise.then(function(pdf) {
-      pdfDoc = pdf;
-      numPages = pdf.numPages;
-      console.log("PDF loaded with " + numPages + " pages.");
-      
-      for (var pageNum = 1; pageNum <= numPages; pageNum++) {
-        var pageContainer = document.createElement("div");
-        pageContainer.id = "page-container-" + pageNum;
-        pageContainer.className = "pageContainer";
-        
-        var canvas = document.createElement("canvas");
-        canvas.className = "pdf-canvas";
-        pageContainer.appendChild(canvas);
-        
-        var textLayerDiv = document.createElement("div");
-        textLayerDiv.className = "textLayer";
-        pageContainer.appendChild(textLayerDiv);
-        
-        container.appendChild(pageContainer);
-        pageRenderedScale[pageNum] = lowScale;
-        renderPage(pageNum, lowScale, pageContainer);
-      }
-      
-      setupObserver();
-    }).catch(function(error) {
-      console.error("Error loading PDF:", error);
-    });
-
-    // Intersection Observer: track which pages are visible (≥50% in view)
-    function setupObserver() {
-      var observerOptions = {
-        root: container,
-        threshold: 0.5
-      };
-      
-      var observer = new IntersectionObserver(function(entries) {
-        entries.forEach(function(entry) {
-          var pageContainer = entry.target;
-          var pageNum = parseInt(pageContainer.id.replace("page-container-", ""));
-          if (entry.intersectionRatio >= 0.5) {
-            visiblePages.add(pageNum);
-          } else {
-            visiblePages.delete(pageNum);
-          }
-        });
-      }, observerOptions);
-      
-      for (var pageNum = 1; pageNum <= numPages; pageNum++) {
-        var pageContainer = document.getElementById("page-container-" + pageNum);
-        observer.observe(pageContainer);
-      }
-    }
-    
-    // Adaptive Zoom: Listen for mouse wheel (Ctrl+wheel) and pinch events
-    // Desktop: Mouse wheel zoom
-    container.addEventListener("wheel", function(event) {
-      if (event.ctrlKey) {
-        event.preventDefault();
-        var zoomStep = 0.1;
-        if (event.deltaY < 0) {
-          currentScale += zoomStep;
-        } else {
-          currentScale = Math.max(0.5, currentScale - zoomStep);
-        }
-        console.log("New scale (wheel): " + currentScale);
-        visiblePages.forEach(function(pageNum) {
-          var pageContainer = document.getElementById("page-container-" + pageNum);
-          renderPage(pageNum, currentScale, pageContainer);
-        });
-      }
-    }, { passive: false });
-    
-    // Touch: Pinch-to-zoom support
-    var initialTouchDistance = null;
-    var initialScale = currentScale;
-    
-    container.addEventListener("touchstart", function(event) {
-      if (event.touches.length === 2) {
-        var dx = event.touches[0].clientX - event.touches[1].clientX;
-        var dy = event.touches[0].clientY - event.touches[1].clientY;
-        initialTouchDistance = Math.hypot(dx, dy);
-        initialScale = currentScale;
-      }
-    }, { passive: false });
-    
-    container.addEventListener("touchmove", function(event) {
-      if (event.touches.length === 2 && initialTouchDistance) {
-        event.preventDefault();
-        var dx = event.touches[0].clientX - event.touches[1].clientX;
-        var dy = event.touches[0].clientY - event.touches[1].clientY;
-        var newDistance = Math.hypot(dx, dy);
-        var newScale = initialScale * (newDistance / initialTouchDistance);
-        currentScale = Math.min(3.0, Math.max(0.5, newScale));
-        console.log("New scale (pinch): " + currentScale);
-        visiblePages.forEach(function(pageNum) {
-          var pageContainer = document.getElementById("page-container-" + pageNum);
-          renderPage(pageNum, currentScale, pageContainer);
-        });
-      }
-    }, { passive: false });
-    
-    container.addEventListener("touchend", function(event) {
-      if (event.touches.length < 2) {
-        initialTouchDistance = null;
-      }
-    });
-  </script>
-</body>
-</html>  -->
 
 
 
